@@ -1,12 +1,12 @@
 # /bunker_game/app.py
-
+import math
 import random
 import string
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, abort
 from werkzeug.security import check_password_hash
 import database
 import game_data
-
+#аавлва
 app = Flask(__name__)
 application = app  # Псевдонім для WSGI-сервера, як-от uWSGI
 app.config['SECRET_KEY'] = 'a_very_secret_key_for_flask_sessions'
