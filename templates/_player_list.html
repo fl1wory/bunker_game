@@ -1,0 +1,8 @@
+<h2 class="text-lg font-semibold mb-4">Гравці в лобі ({{ players_in_lobby|length }}):</h2>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-left">
+    {% for p in players_in_lobby %}
+    <span class="bg-gray-700 p-2 rounded text-center truncate"><i class="fas fa-user text-green-400 mr-2"></i>{{ p.username }}</span>
+    {% else %}
+    <p class="col-span-full text-gray-500">Очікуємо на гравців...</p>
+    {% endfor %}
+</div>

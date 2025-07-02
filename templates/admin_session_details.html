@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Керування сесією {{ session.session_code }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .details-grid { display: grid; grid-template-columns: 150px 1fr; gap: 4px; }
+        .kicked { text-decoration: line-through; color: #9ca3af; }
+        .voted-out { text-decoration: line-through; color: #f87171; }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 min-h-screen">
+    <div class="container mx-auto p-6">
+        <div class="flex justify-between items-center mb-4">
+            <a href="{{ url_for('admin_dashboard') }}" class="text-amber-400 hover:text-amber-300">← Назад до панелі</a>
+            <div class="px-4 py-2 rounded-full text-sm font-bold
+                {% if session.status == 'lobby' %} bg-blue-800 text-blue-200
+                {% elif session.status == 'running' %} bg-green-800 text-green-200
+                {% else %} bg-gray-700 text-gray-300 {% endif %}">
+                Статус: {{ session.status.capitalize() }}
+            </div>
+        </div>
+        <h1 class="text-4xl font-bold text-amber-400 my-4">Керування сесією: <span class="font-mono">{{ session.session_code }}</span></h1>
+
+        <!-- Панелі керування -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <!-- Панель керування в Лобі -->
+            {% if session.status == 'lobby' %}
+            <div class="bg-gray-800 p-6 rounded-lg md:col-span-2">
+                <h2 class="text-xl font-bold mb-4">Налаштування перед грою</h2>
+                <form action="{{ url_for('update_win_limit', session_code=session.session_code) }}" method="POST" class="flex items-center space-x-4">
+                    <label for="win_limit">Завершити гру, коли гравців:</label>
+                    <input type="number" name="win_limit" id="win_limit" value="{{ session.win_condition_limit }}" class="bg-gray-700 text-center w-16 p-2 rounded">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded">Зберегти</button>
+                </form>
+            </div>
+            <div class="bg-gray-800 p-6 rounded-lg flex items-center justify-center">
+                <form action="{{ url_for('start_game', session_code=session.session_code) }}" method="POST" class="w-full">
+                    <button type="submit" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-lg text-lg">РОЗПОЧАТИ ГРУ</button>
+                </form>
+            </div>
+            {% endif %}
+
+            <!-- Панелі керування під час гри -->
+            {% if session.status == 'running' %}
+            <div class="bg-gray-800 p-6 rounded-lg">
+                <h2 class="text-xl font-bold mb-4">Керування голосуванням</h2>
+                {% if not session.is_voting_active %}
+                <form action="{{ url_for('manage_vote', session_code=session.session_code) }}" method="POST">
+                    <input type="hidden" name="action" value="start"><button type="submit" class="w-full bg-green-600 hover:bg-green-500 px-4 py-2 rounded font-bold">РОЗПОЧАТИ ГОЛОСУВАННЯ</button>
+                </form>
+                {% else %}
+                <div class="flex space-x-4">
+                    <form action="{{ url_for('manage_vote', session_code=session.session_code) }}" method="POST" class="flex-1">
+                        <input type="hidden" name="action" value="tally"><button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 px-4 py-2 rounded font-bold">ПІДРАХУВАТИ</button>
+                    </form>
+                    <form action="{{ url_for('manage_vote', session_code=session.session_code) }}" method="POST" class="flex-1">
+                        <input type="hidden" name="action" value="cancel"><button type="submit" class="w-full bg-red-600 hover:bg-red-500 px-4 py-2 rounded font-bold">СКАСУВАТИ</button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+            <div class="bg-gray-800 p-6 rounded-lg border border-red-800">
+                <h2 class="text-xl font-bold mb-4 text-red-400">Небезпечна зона</h2>
+                <form action="{{ url_for('force_end_session', session_code=session.session_code) }}" method="POST" onsubmit="return confirm('Ви впевнені, що хочете примусово завершити гру? Переможців не буде.')">
+                    <button type="submit" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded">ПРИМУСОВО ЗАВЕРШИТИ ГРУ</button>
+                </form>
+            </div>
+            {% endif %}
+
+            <!-- Панель керування після завершення гри -->
+            {% if session.status == 'finished' %}
+            <div class="bg-gray-800 p-6 rounded-lg col-span-full text-center">
+                <h2 class="text-xl font-bold mb-4 text-green-400">Гра завершена</h2>
+                <p class="text-gray-400 mb-6">Цю сесію завершено. Ви можете переглянути її результати або остаточно видалити.</p>
+                <form action="{{ url_for('delete_session', session_code=session.session_code) }}" method="POST" onsubmit="return confirm('УВАГА! Ця дія остаточно видалить всі дані про сесію та гравців. Ви впевнені?')">
+                    <button type="submit" class="bg-red-800 hover:bg-red-700 text-white font-bold py-3 px-6 rounded">ВИДАЛИТИ СЕСІЮ</button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Список гравців -->
+        <div class="bg-gray-800 p-6 rounded-lg" id="player-list-container">
+            {% include '_admin_player_list.html' %}
+        </div>
+    </div>
+
+    <script>
+        const sessionCode = "{{ session.session_code }}";
+        const sessionStatus = "{{ session.status }}";
+        let intervalId = null;
+
+        if (sessionStatus === 'lobby') {
+            intervalId = setInterval(async () => {
+                try {
+                    const response = await fetch(`/api/admin_session_state/${sessionCode}`);
+                    if (!response.ok) throw new Error('Network error');
+                    const data = await response.json();
+                    document.getElementById('player-list-container').innerHTML = data.players_html;
+                } catch (error) {
+                    console.error('Error fetching admin session state:', error);
+                    clearInterval(intervalId);
+                }
+            }, 500);
+        }
+    </script>
+</body>
+</html>

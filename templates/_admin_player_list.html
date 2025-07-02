@@ -1,0 +1,28 @@
+<h2 class="text-xl font-bold mb-4">Гравці ({{ active_player_count }})</h2>
+<div class="space-y-2">
+    {% for player in players %}
+    <details class="bg-gray-700 rounded-lg p-2">
+        <summary class="cursor-pointer flex justify-between items-center">
+            <span class="font-bold text-lg {{ 'kicked' if player.status == 'kicked_by_admin' }} {{ 'voted-out' if player.status == 'voted_out' }}">{{ player.username }}</span>
+            <div class="flex items-center space-x-4">
+                <span class="text-sm px-2 py-1 rounded-full {{ 'bg-green-500' if player.status == 'in_game' else 'bg-red-500' }}">{{ player.status.replace('_', ' ') }}</span>
+                    {% if player.status == 'in_game' %}
+                <form action="{{ url_for('kick_player', session_code=session.session_code, username=player.username) }}" method="POST" onsubmit="return confirm('Ви впевнені, що хочете вигнати гравця {{ player.username }}?')">
+                    <button type="submit" class="text-red-400 hover:text-red-300" title="Вигнати гравця"><i class="fas fa-trash"></i></button>
+                </form>
+                {% endif %}
+            </div>
+        </summary>
+        <div class="mt-4 pt-4 border-t border-gray-600 text-sm">
+            <div class="details-grid"><strong class="text-gray-400">Професія:</strong><span>{{ player.profession }}</span></div>
+            <div class="details-grid"><strong class="text-gray-400">Здоров'я:</strong><span>{{ player.health }}</span></div>
+            <div class="details-grid"><strong class="text-gray-400">Стать:</strong><span>{{ player.gender }}</span></div>
+            <div class="details-grid"><strong class="text-gray-400">Хобі:</strong><span>{{ player.hobby }}</span></div>
+            <div class="details-grid"><strong class="text-gray-400">Інвентар:</strong><span>{{ player.inventory }}</span></div>
+            <div class="details-grid"><strong class="text-gray-400">Риса:</strong><span>{{ player.human_trait }}</span></div>
+        </div>
+    </details>
+    {% else %}
+    <p class="text-gray-500">Ще жоден гравець не приєднався.</p>
+    {% endfor %}
+</div>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ігрова кімната - Bunker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-200 min-h-screen p-4 flex items-center justify-center" data-voting-active="{{ session_details.is_voting_active|string|lower }}">
+    <div class="w-full max-w-2xl">
+
+        {% if session_details.is_voting_active %}
+            <div class="bg-red-900/50 border-2 border-red-500 rounded-lg p-6 text-center shadow-2xl">
+                <h1 class="text-3xl font-bold text-red-400 mb-4">ГОЛОСУВАННЯ ЗА ВИГНАННЯ</h1>
+                {% if has_voted %}
+                    <p class="text-xl text-gray-300">Ваш голос зараховано. Очікуйте на результати.</p>
+                {% else %}
+                    <p class="mb-4 text-gray-400">Ви голосуєте від імені: <strong class="text-amber-300">{{ player.username }}</strong></p>
+
+                    <!-- ОНОВЛЕНО: Інструкція для гравця -->
+                    <p class="text-lg text-gray-400 mb-6">Оберіть одного кандидата, щоб вигнати з бункера.</p>
+
+                    <form action="{{ url_for('player_vote') }}" method="POST">
+                        <!-- ОНОВЛЕНО: Чекбокси замінено на радіокнопки -->
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
+                            {% for p in other_players %}
+                            <div>
+                                <input type="radio" name="candidate" value="{{ p.username }}" id="player_{{ p.username }}" class="hidden peer" required>
+                                <label for="player_{{ p.username }}" class="block p-4 bg-gray-700 rounded-lg cursor-pointer peer-checked:bg-red-600 peer-checked:ring-2 ring-red-400 transition-all">
+                                    {{ p.username }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button type="submit" class="bg-red-600 hover:bg-red-500 px-8 py-3 rounded-lg font-bold">ВІДДАТИ ГОЛОС</button>
+                    </form>
+                {% endif %}
+            </div>
+        {% else %}
+            <!-- Player Profile UI -->
+            <div class="bg-gray-800 rounded-lg p-6 text-center shadow-2xl">
+                <h1 class="text-3xl font-bold text-amber-400">ЛАСКАВО ПРОСИМО, {{ player.username }}!</h1>
+                <p class="text-gray-400 mt-2">Ви в сесії <span class="font-mono text-amber-400">{{ session_details.session_code }}</span></p>
+                <div class="mt-6 p-4 bg-gray-700 rounded-lg max-w-lg mx-auto text-left">
+                    <h2 class="text-xl text-amber-500 mb-4">ВАШ ПРОФІЛЬ:</h2>
+                    <ul class="space-y-2 text-base">
+                        <li><strong>Професія:</strong> {{ player.profession }}</li>
+                        <li><strong>Здоров'я:</strong> {{ player.health }}</li>
+                        <li><strong>Стать:</strong> {{ player.gender }}</li>
+                        <li><strong>Хобі:</strong> {{ player.hobby }}</li>
+                        <li><strong>Інвентар:</strong> {{ player.inventory }}</li>
+                        <li><strong>Риса:</strong> {{ player.human_trait }}</li>
+                    </ul>
+                </div>
+                <p class="mt-6 text-gray-500 animate-pulse">Очікування на голосування...</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        const sessionCode = "{{ session_details.session_code }}";
+        const body = document.querySelector('body');
+        const isVotingCurrentlyActive = body.dataset.votingActive === 'true';
+
+        const interval = setInterval(async () => {
+            try {
+                const response = await fetch(`/api/game_state/${sessionCode}`);
+                if (!response.ok) throw new Error('Network error');
+                const data = await response.json();
+
+                if (data.is_voting_active !== isVotingCurrentlyActive) {
+                    clearInterval(interval);
+                    window.location.reload();
+                }
+            } catch (error) {
+                console.error('Error checking vote status:', error);
+                clearInterval(interval);
+            }
+        }, 500);
+    </script>
+</body>
+</html>

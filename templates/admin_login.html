@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bunker - Admin Access</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #1a202c;
+            font-family: 'Roboto Mono', monospace;
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-image:
+                linear-gradient(rgba(26, 32, 44, 0.8), rgba(26, 32, 44, 0.8)),
+                url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMCIgaGVpZ2h0PSIzMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiPgo8cGF0aCBkPSJNIDUwLDQ5IEwgMCwzMyBMIDUwLDE3IEwgMTAwLDMzIHogTSAwLDY2IEwgNDksODIgTCAxMDAsNjYgTCA1MCw1MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMmQzNzQ4IiBzdHJva2Utd2lkdGg9IjIiLz4KPC9zdmc+');
+        }
+        .metal-frame {
+            border: 2px solid #2d3748;
+            box-shadow: 0 0 0 1px #4a5568, 0 0 25px rgba(0,0,0,0.6), inset 0 0 15px rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+        }
+        .input-field {
+            background-color: rgba(26, 32, 44, 0.8);
+            border: 1px solid #4a5568;
+            color: #e2e8f0;
+            transition: all 0.3s ease;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: #d69e2e;
+            box-shadow: 0 0 0 2px rgba(214, 158, 46, 0.3);
+        }
+        .auth-button {
+            background: linear-gradient(180deg, #d69e2e, #b7791f);
+            text-shadow: 0 1px 1px rgba(0,0,0,0.5);
+            transition: all 0.2s ease;
+            color: #1a202c;
+        }
+        .auth-button:hover {
+            background: linear-gradient(180deg, #ecc94b, #d69e2e);
+            transform: translateY(-1px);
+        }
+        .auth-button:active { transform: translateY(0); }
+    </style>
+</head>
+<body>
+    <div class="w-full max-w-md px-4">
+        <div class="metal-frame bg-gray-900 bg-opacity-70 rounded-lg overflow-hidden">
+            <div class="p-8">
+                <div class="text-center mb-8">
+                    <h1 class="text-2xl font-bold text-amber-500 uppercase tracking-wider" style="font-family: 'Orbitron', sans-serif;">Administrator Access</h1>
+                    <div class="h-1 bg-gradient-to-r from-gray-800 via-amber-500 to-gray-800 w-3/4 mx-auto mt-2 rounded-full"></div>
+                </div>
+
+                {% if error %}
+                    <div class="bg-red-800 border border-red-600 text-red-200 px-4 py-2 rounded-md mb-6 text-sm">
+                        {{ error }}
+                    </div>
+                {% endif %}
+
+                <form id="adminLoginForm" class="space-y-6" method="POST" action="{{ url_for('admin_login') }}">
+                    <div>
+                        <label for="adminLogin" class="block text-sm font-medium text-gray-300 mb-1 tracking-wider">ADMIN LOGIN</label>
+                        <input type="text" id="adminLogin" name="login" placeholder="login" required class="input-field w-full px-4 py-3 rounded placeholder-gray-500">
+                    </div>
+
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-300 mb-1 tracking-wider">PASSWORD</label>
+                        <input type="password" id="password" name="password" placeholder="••••••••" required class="input-field w-full px-4 py-3 rounded placeholder-gray-500">
+                    </div>
+
+                    <div class="pt-4">
+                        <button type="submit" class="auth-button w-full py-3 px-4 rounded font-bold uppercase tracking-wider">
+                            Authenticate
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="bg-gray-800 px-6 py-3 text-center">
+                <p class="text-xs text-gray-500 tracking-wider">SECURE ACCESS ONLY • ALL ATTEMPTS LOGGED</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BUNKER - Post-Apocalyptic Survival</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Stardos+Stencil:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Stardos Stencil', 'Orbitron', sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxkZWZzPjxwYXR0ZXJuIGlkPSJwYXR0ZXJuIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgcGF0dGVyblRyYW5zZm9ybT0icm90YXRlKDQ1KSBzY2FsZSgxKSI+PHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjMTgxODE4Ij48L3JlY3Q+PHJlY3QgeD0iNTAiIHk9IjUwIiB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiMxODE4MTgiPjwvcmVjdD48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjcGF0dGVybikiIG9wYWNpdHk9IjEiPjwvcmVjdD48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI3J1c3Qtb3ZlcmxheSkiIG9wYWNpdHk9IjAuMDciPjwvcmVjdD48ZGVmcz48cmFkaWFsR3JhZGllbnQgaWQ9InJ1c3Qtb3ZlcmxheSIgY3g9IjUwJSIgY3k9IjUwJSIgcj0iMTAwJSIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiM3OTM0MDIiIHN0b3Atb3BhY2l0eT0iMSIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzQ0MjgwMCIgc3RvcC1vcGFjaXR5PSIxIi8+PC9yYWRpYWxHcmFkaWVudD48L2RlZnM+PC9zdmc+');
+            overflow: hidden;
+            position: relative;
+        }
+        .glow-box {
+            box-shadow: 0 0 15px rgba(217, 164, 0, 0.3);
+            border: 1px solid rgba(217, 164, 0, 0.3);
+            animation: pulse 2s infinite alternate;
+        }
+        .glow-text { text-shadow: 0 0 5px rgba(217, 164, 0, 0.7); }
+        .rust-button {
+            background-image: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 50%, #3a3a3a 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        .rust-button::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxkZWZzPjxwYXR0ZXJuIGlkPSJwYXR0ZXJuIiB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHBhdHRlcm5UcmFuc2Zvcm09InJvdGF0ZSg0NSkgc2NhbGUoMSkiPjxyZWN0IHdpZHRoPSI1IiBoZWlnaHQ9IjUiIGZpbGw9IiM3OTM0MDIiIG9wYWNpdHk9IjAuMSI+PC9yZWN0PjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNwYXR0ZXJuKSI+PC9yZWN0Pjwvc3ZnPg==');
+            opacity: 0.3;
+            pointer-events: none;
+        }
+        .rust-button:hover { box-shadow: 0 0 15px rgba(217, 164, 0, 0.5); }
+        .rust-button:active { transform: translateY(1px); }
+        .input-field {
+            background-color: rgba(30, 30, 30, 0.7);
+            border: 1px solid #444;
+            color: #e0e0e0;
+            transition: all 0.3s ease;
+        }
+        .input-field:focus {
+            border-color: #d9a400;
+            box-shadow: 0 0 10px rgba(217, 164, 0, 0.3);
+            outline: none;
+        }
+        .input-field::placeholder { color: #666; }
+        @keyframes pulse {
+            from { box-shadow: 0 0 10px rgba(217, 164, 0, 0.3); }
+            to { box-shadow: 0 0 20px rgba(217, 164, 0, 0.5); }
+        }
+        .admin-btn { transition: all 0.3s ease; }
+        .admin-btn:hover { color: #d9a400; transform: scale(1.05); }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <!-- Admin Button -->
+    <div class="absolute top-4 right-4">
+        <a href="/admin" id="admin-btn" class="admin-btn flex items-center text-xs text-gray-400 hover:text-bunker-amber transition-colors">
+            <i class="fas fa-key mr-1"></i>
+            <span>ADMIN LOGIN</span>
+        </a>
+    </div>
+
+    <!-- Main Content -->
+    <div class="w-full max-w-md">
+        <!-- Title -->
+        <h1 class="text-4xl md:text-5xl font-bold text-center mb-8 glow-text" style="color: #d9a400;">
+            BUNKER
+        </h1>
+
+        <!-- Connection Form -->
+        <div class="glow-box bg-gray-900 bg-opacity-80 p-8 rounded-lg backdrop-blur-sm">
+            <form class="space-y-6" method="POST" action="{{ url_for('index') }}">
+                <!-- Username Field -->
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-300 mb-1">
+                        USERNAME
+                    </label>
+                    <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        placeholder="Enter your name"
+                        class="input-field w-full px-4 py-3 rounded font-orbitron text-sm focus:ring-2 focus:ring-yellow-500"
+                        required
+                    >
+                </div>
+
+                <!-- Session Code Field -->
+                <div>
+                    <label for="session-code" class="block text-sm font-medium text-gray-300 mb-1">
+                        SESSION CODE
+                    </label>
+                    <input
+                        type="text"
+                        id="session-code"
+                        name="session-code"
+                        placeholder="A4T7B"
+                        class="input-field w-full px-4 py-3 rounded font-orbitron text-sm tracking-widest focus:ring-2 focus:ring-yellow-500"
+                        required
+                        pattern="[A-Z0-9]{5}"
+                        maxlength="5"
+                        style="text-transform: uppercase;"
+                    >
+                </div>
+
+                <!-- Connect Button -->
+                <button
+                    id="connect-btn"
+                    type="submit"
+                    class="rust-button w-full py-4 px-4 rounded font-stencil text-lg uppercase tracking-wider transition-all duration-300"
+                    style="color: #d9a400;"
+                >
+                    CONNECT TO SESSION
+                </button>
+            </form>
+        </div>
+
+        <!-- Status Message -->
+        <p class="text-center text-xs text-gray-500 mt-4 font-orbitron">
+            SYSTEM STATUS: <span style="color: #d9a400;">ONLINE</span>
+        </p>
+    </div>
+</body>
+</html>

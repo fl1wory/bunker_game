@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bunker - Admin Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono&family=Orbitron:wght@600&display=swap');
+        .glow-effect { box-shadow: 0 0 15px rgba(234, 179, 8, 0.4); }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen flex flex-col font-sans">
+    <header class="bg-gray-800 border-b border-amber-500/20 py-4 px-6 flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-amber-400 flex items-center" style="font-family: 'Orbitron', sans-serif;">
+            <i class="fas fa-shield-alt mr-3"></i>
+            <span>BUNKER ADMIN PANEL</span>
+        </h1>
+        <div class="flex items-center space-x-4">
+            <div class="text-sm bg-gray-700 px-3 py-1 rounded-full flex items-center">
+                <i class="fas fa-user-circle text-amber-400 mr-2"></i>
+                <span>{{ username }}</span>
+            </div>
+            <a href="{{ url_for('logout') }}" class="text-gray-400 hover:text-red-400 transition-colors" title="Log Out">
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+        </div>
+    </header>
+
+    <main class="flex-1 p-6 flex flex-col">
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold text-amber-400 mb-4">Створити нову сесію</h2>
+            <button id="startSessionBtn" class="w-full md:w-1/2 lg:w-1/3 py-4 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg transition-all glow-effect">
+                <i class="fas fa-play"></i> РОЗПОЧАТИ НОВУ СЕСІЮ
+            </button>
+        </div>
+
+        <div>
+            <h2 class="text-xl font-semibold text-amber-400 mb-4">Всі сесії</h2>
+            <div id="sessions-container" class="space-y-3">
+                {% if sessions %}
+                    {% for s in sessions %}
+                    <a href="{{ url_for('admin_session_details', session_code=s.session_code) }}"
+                       class="block rounded-lg p-3 flex justify-between items-center transition-colors
+                              {% if s.status == 'finished' %} bg-gray-700 hover:bg-gray-600 text-gray-400
+                              {% else %} bg-gray-800 border border-gray-700 hover:bg-gray-700 {% endif %}">
+                        <div class="font-mono text-lg {{ 'text-amber-400' if s.status != 'finished' else '' }}">{{ s.session_code }}</div>
+                        <div class="text-xs">Створена: {{ s.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                        <div class="px-3 py-1 rounded-full text-xs font-bold
+                            {% if s.status == 'lobby' %} bg-blue-800 text-blue-200
+                            {% elif s.status == 'running' %} bg-green-800 text-green-200
+                            {% else %} bg-gray-600 text-gray-300 {% endif %}">
+                            {{ s.status.capitalize() }}
+                        </div>
+                    </a>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-gray-500 text-center py-4">Немає створених сесій.</p>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.getElementById('startSessionBtn').addEventListener('click', async function() {
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>ГЕНЕРУЄМО...</span>';
+            this.disabled = true;
+
+            try {
+                const response = await fetch('/admin/create_session', { method: 'POST' });
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    throw new Error('Failed to create session');
+                }
+            } catch (error) {
+                console.error('Session creation failed:', error);
+                this.innerHTML = '<span>ПОМИЛКА</span>';
+            }
+        });
+    </script>
+</body>
+</html>
