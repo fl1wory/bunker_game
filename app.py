@@ -2,6 +2,7 @@
 
 import random
 import string
+import sqlite3  # <-- Додаємо цей імпорт для обробки помилок БД
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, abort
 from werkzeug.security import check_password_hash
 import database
@@ -99,10 +100,7 @@ def api_game_state(session_code):
     if not session_details: abort(404)
     players_in_lobby = database.get_players_in_session(session_code)
     players_html = render_template('_player_list.html', players_in_lobby=players_in_lobby)
-
-    # Повертаємо також повні дані гравців для оновлення кнопок
     all_players_data = [dict(p) for p in database.get_players_in_session(session_code)]
-
     return jsonify({
         'session_status': session_details['status'],
         'is_voting_active': session_details['is_voting_active'],
@@ -124,7 +122,7 @@ def toggle_reveal():
         return jsonify({'status': 'error', 'message': 'Invalid attribute'}), 400
 
 
-# --- Admin Routes (без змін) ---
+# --- Admin Routes ---
 @app.route('/admin', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
@@ -156,12 +154,26 @@ def admin_session_details(session_code):
 
 @app.route('/admin/create_session', methods=['POST'])
 def create_session():
+    """
+    ОНОВЛЕНА, БІЛЬШ НАДІЙНА ВЕРСІЯ.
+    Використовує підхід "Простіше попросити пробачення, ніж дозволу".
+    """
     if 'admin_login' not in session: abort(401)
-    chars = string.ascii_uppercase + string.digits
+
     while True:
-        session_code = ''.join(random.choice(chars) for _ in range(5))
-        if not check_table_exists(session_code): break
-    database.create_game_session(session_code, session['admin_login'])
+        # Генеруємо новий випадковий код
+        session_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
+        try:
+            # Намагаємося створити сесію. Це може викликати помилку, якщо код не унікальний
+            database.create_game_session(session_code, session['admin_login'])
+            # Якщо помилки не було (код унікальний), виходимо з циклу
+            break
+        except sqlite3.IntegrityError:
+            # Ця помилка виникає, якщо такий session_code вже існує (завдяки UNIQUE в БД).
+            # Ми просто ігноруємо її і дозволяємо циклу згенерувати новий код.
+            print(f"Code collision for {session_code}. Retrying...")
+            continue
+
     return jsonify({'session_code': session_code})
 
 
@@ -223,3 +235,7 @@ def manage_vote(session_code):
 def logout():
     session.clear()
     return redirect(url_for('index'))
+
+# if __name__ == '__main__':
+#     database.init_db(app)
+#     app.run(debug=True, port=5000)
