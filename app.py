@@ -1,32 +1,28 @@
 # /bunker_game/app.py
-import math
+
 import random
 import string
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, abort
 from werkzeug.security import check_password_hash
 import database
 import game_data
-#аавлва
+
 app = Flask(__name__)
-application = app  # Псевдонім для WSGI-сервера, як-от uWSGI
+application = app
 app.config['SECRET_KEY'] = 'a_very_secret_key_for_flask_sessions'
+
 
 @app.teardown_appcontext
 def close_connection(exception):
-    """Закриває з'єднання з БД після кожного запиту."""
     database.close_db(exception)
 
+
 def generate_player_profile():
-    """Створює повний профіль для нового гравця."""
-    return {
-        "gender": random.choice(game_data.GENDERS),
-        "profession": random.choice(game_data.PROFESSIONS),
-        "health": random.choice(game_data.HEALTH_CONDITIONS),
-        "hobby": random.choice(game_data.HOBBIES),
-        "inventory": random.choice(game_data.INVENTORY),
-        "human_trait": random.choice(game_data.HUMAN_TRAITS),
-        "secret": random.choice(game_data.SECRETS),
-    }
+    return {"gender": random.choice(game_data.GENDERS), "profession": random.choice(game_data.PROFESSIONS),
+            "health": random.choice(game_data.HEALTH_CONDITIONS), "hobby": random.choice(game_data.HOBBIES),
+            "inventory": random.choice(game_data.INVENTORY), "human_trait": random.choice(game_data.HUMAN_TRAITS),
+            "secret": random.choice(game_data.SECRETS)}
+
 
 # --- Player and Main Game Routes ---
 @app.route('/', methods=['GET', 'POST'])
@@ -34,10 +30,13 @@ def index():
     if request.method == 'POST':
         username = request.form['username']
         session_code = request.form['session-code'].upper()
-        if not username or not session_code: return render_template('error.html', error_message="Ім'я та код сесії є обов'язковими.")
+        if not username or not session_code: return render_template('error.html',
+                                                                    error_message="Ім'я та код сесії є обов'язковими.")
         session_details = database.get_session_details(session_code)
-        if not session_details: return render_template('error.html', error_message=f"Сесію '{session_code}' не знайдено.")
-        if session_details['status'] != 'lobby': return render_template('error.html', error_message=f"Гра в сесії '{session_code}' вже почалась або завершена.")
+        if not session_details: return render_template('error.html',
+                                                       error_message=f"Сесію '{session_code}' не знайдено.")
+        if session_details['status'] != 'lobby': return render_template('error.html',
+                                                                        error_message=f"Гра в сесії '{session_code}' вже почалась або завершена.")
         player = database.get_player(session_code, username)
         if player:
             session['username'], session['session_code'] = player['username'], session_code
@@ -47,6 +46,7 @@ def index():
         session['username'], session['session_code'] = username, session_code
         return redirect(url_for('game_room'))
     return render_template('index.html')
+
 
 @app.route('/game')
 def game_room():
@@ -63,26 +63,24 @@ def game_room():
         return render_template('lobby.html', player=player, session_code=session['session_code'])
     if session_details['status'] == 'running':
         active_players_count = database.count_active_players(session['session_code'])
-        if active_players_count <= session_details['win_condition_limit']: return redirect(url_for('game_over'))
-        other_players = [p for p in database.get_players_in_session(session['session_code']) if p['status'] == 'in_game' and p['username'] != player['username']]
+        if active_players_count <= session_details['win_condition_limit']:
+            database.end_session(session['session_code'])
+            return redirect(url_for('game_over'))
+        other_players = database.get_players_in_session(session['session_code'])
         has_voted = database.get_player_vote(session['session_code'], player['username'])
-        return render_template('game_room.html', player=player, session_details=session_details, other_players=other_players, has_voted=has_voted)
+        return render_template('game_room.html', player=player, session_details=session_details,
+                               other_players=other_players, has_voted=has_voted)
     return redirect(url_for('index'))
 
 
 @app.route('/game/vote', methods=['POST'])
 def player_vote():
     if 'username' not in session: abort(401)
-    # Отримуємо значення однієї обраної радіокнопки
     candidate = request.form.get('candidate')
-
-    # Перевіряємо, чи було зроблено вибір
-    if not candidate:
-        # Можна додати повідомлення про помилку, якщо потрібно
-        return redirect(url_for('game_room'))
-
+    if not candidate: return redirect(url_for('game_room'))
     database.cast_vote(session['session_code'], session['username'], candidate)
     return redirect(url_for('game_room'))
+
 
 @app.route('/game_over')
 def game_over():
@@ -101,20 +99,32 @@ def api_game_state(session_code):
     if not session_details: abort(404)
     players_in_lobby = database.get_players_in_session(session_code)
     players_html = render_template('_player_list.html', players_in_lobby=players_in_lobby)
-    return jsonify({'session_status': session_details['status'], 'is_voting_active': session_details['is_voting_active'], 'players_html': players_html})
 
-@app.route('/api/admin_session_state/<session_code>')
-def api_admin_session_state(session_code):
-    if 'admin_login' not in session: abort(401)
-    session_details = database.get_session_details(session_code)
-    if not session_details: abort(404)
-    players = database.get_players_in_session(session_code)
-    active_player_count = database.count_active_players(session_code)
-    players_html = render_template('_admin_player_list.html', players=players, session=session_details, active_player_count=active_player_count)
-    return jsonify({'players_html': players_html})
+    # Повертаємо також повні дані гравців для оновлення кнопок
+    all_players_data = [dict(p) for p in database.get_players_in_session(session_code)]
+
+    return jsonify({
+        'session_status': session_details['status'],
+        'is_voting_active': session_details['is_voting_active'],
+        'players_html': players_html,
+        'all_players_data': all_players_data
+    })
 
 
-# --- Admin Routes ---
+@app.route('/api/toggle_reveal', methods=['POST'])
+def toggle_reveal():
+    if 'username' not in session or 'session_code' not in session: abort(401)
+    data = request.get_json()
+    attribute = data.get('attribute')
+    if not attribute: return jsonify({'status': 'error', 'message': 'Attribute not specified'}), 400
+    success = database.toggle_attribute_visibility(session['session_code'], session['username'], attribute)
+    if success:
+        return jsonify({'status': 'success'})
+    else:
+        return jsonify({'status': 'error', 'message': 'Invalid attribute'}), 400
+
+
+# --- Admin Routes (без змін) ---
 @app.route('/admin', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
@@ -125,11 +135,13 @@ def admin_login():
         return render_template('admin_login.html', error="Невірний логін або пароль")
     return render_template('admin_login.html')
 
+
 @app.route('/admin/dashboard')
 def admin_dashboard():
     if 'admin_login' not in session: return redirect(url_for('admin_login'))
     all_sessions = database.get_all_sessions()
     return render_template('admin_dashboard.html', sessions=all_sessions, username=session['admin_login'])
+
 
 @app.route('/admin/session/<session_code>')
 def admin_session_details(session_code):
@@ -138,7 +150,9 @@ def admin_session_details(session_code):
     if not session_details: abort(404)
     players = database.get_players_in_session(session_code)
     active_player_count = database.count_active_players(session_code)
-    return render_template('admin_session_details.html', session=session_details, players=players, active_player_count=active_player_count)
+    return render_template('admin_session_details.html', session=session_details, players=players,
+                           active_player_count=active_player_count)
+
 
 @app.route('/admin/create_session', methods=['POST'])
 def create_session():
@@ -146,9 +160,10 @@ def create_session():
     chars = string.ascii_uppercase + string.digits
     while True:
         session_code = ''.join(random.choice(chars) for _ in range(5))
-        if not database.check_table_exists(session_code): break
+        if not check_table_exists(session_code): break
     database.create_game_session(session_code, session['admin_login'])
     return jsonify({'session_code': session_code})
+
 
 @app.route('/admin/start_game/<session_code>', methods=['POST'])
 def start_game(session_code):
@@ -156,11 +171,13 @@ def start_game(session_code):
     database.start_game_session(session_code)
     return redirect(url_for('admin_session_details', session_code=session_code))
 
+
 @app.route('/admin/force_end_session/<session_code>', methods=['POST'])
 def force_end_session(session_code):
     if 'admin_login' not in session: abort(401)
     database.end_session(session_code)
     return redirect(url_for('admin_session_details', session_code=session_code))
+
 
 @app.route('/admin/delete_session/<session_code>', methods=['POST'])
 def delete_session(session_code):
@@ -168,11 +185,13 @@ def delete_session(session_code):
     database.delete_session_data(session_code)
     return redirect(url_for('admin_dashboard'))
 
+
 @app.route('/admin/kick_player/<session_code>/<username>', methods=['POST'])
 def kick_player(session_code, username):
     if 'admin_login' not in session: abort(401)
     database.set_player_status(session_code, username, 'kicked_by_admin')
     return redirect(url_for('admin_session_details', session_code=session_code))
+
 
 @app.route('/admin/update_win_limit/<session_code>', methods=['POST'])
 def update_win_limit(session_code):
@@ -180,6 +199,7 @@ def update_win_limit(session_code):
     limit = int(request.form['win_limit'])
     database.update_win_condition(session_code, limit)
     return redirect(url_for('admin_session_details', session_code=session_code))
+
 
 @app.route('/admin/manage_vote/<session_code>', methods=['POST'])
 def manage_vote(session_code):
@@ -198,11 +218,8 @@ def manage_vote(session_code):
         database.clear_votes(session_code)
     return redirect(url_for('admin_session_details', session_code=session_code))
 
+
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('index'))
-
-if __name__ == '__main__':
-    database.init_db(app)
-    app.run(debug=True, port=5000)

@@ -5,30 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ігрова кімната - Bunker</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .blurred-text {
+            filter: blur(5px);
+            -webkit-filter: blur(5px);
+            user-select: none;
+            transition: filter 0.3s ease-in-out;
+        }
+    </style>
 </head>
 <body class="bg-gray-900 text-gray-200 min-h-screen p-4 flex items-center justify-center" data-voting-active="{{ session_details.is_voting_active|string|lower }}">
-    <div class="w-full max-w-2xl">
+    <div class="w-full max-w-3xl">
 
         {% if session_details.is_voting_active %}
+            <!-- Інтерфейс голосування -->
             <div class="bg-red-900/50 border-2 border-red-500 rounded-lg p-6 text-center shadow-2xl">
                 <h1 class="text-3xl font-bold text-red-400 mb-4">ГОЛОСУВАННЯ ЗА ВИГНАННЯ</h1>
                 {% if has_voted %}
                     <p class="text-xl text-gray-300">Ваш голос зараховано. Очікуйте на результати.</p>
                 {% else %}
                     <p class="mb-4 text-gray-400">Ви голосуєте від імені: <strong class="text-amber-300">{{ player.username }}</strong></p>
-
-                    <!-- ОНОВЛЕНО: Інструкція для гравця -->
                     <p class="text-lg text-gray-400 mb-6">Оберіть одного кандидата, щоб вигнати з бункера.</p>
-
                     <form action="{{ url_for('player_vote') }}" method="POST">
-                        <!-- ОНОВЛЕНО: Чекбокси замінено на радіокнопки -->
                         <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
-                            {% for p in other_players %}
+                            {% for p in other_players if p.username != player.username %}
                             <div>
                                 <input type="radio" name="candidate" value="{{ p.username }}" id="player_{{ p.username }}" class="hidden peer" required>
-                                <label for="player_{{ p.username }}" class="block p-4 bg-gray-700 rounded-lg cursor-pointer peer-checked:bg-red-600 peer-checked:ring-2 ring-red-400 transition-all">
-                                    {{ p.username }}
-                                </label>
+                                <label for="player_{{ p.username }}" class="block p-4 bg-gray-700 rounded-lg cursor-pointer peer-checked:bg-red-600 peer-checked:ring-2 ring-red-400 transition-all">{{ p.username }}</label>
                             </div>
                             {% endfor %}
                         </div>
@@ -37,27 +41,156 @@
                 {% endif %}
             </div>
         {% else %}
-            <!-- Player Profile UI -->
-            <div class="bg-gray-800 rounded-lg p-6 text-center shadow-2xl">
-                <h1 class="text-3xl font-bold text-amber-400">ЛАСКАВО ПРОСИМО, {{ player.username }}!</h1>
-                <p class="text-gray-400 mt-2">Ви в сесії <span class="font-mono text-amber-400">{{ session_details.session_code }}</span></p>
-                <div class="mt-6 p-4 bg-gray-700 rounded-lg max-w-lg mx-auto text-left">
-                    <h2 class="text-xl text-amber-500 mb-4">ВАШ ПРОФІЛЬ:</h2>
-                    <ul class="space-y-2 text-base">
-                        <li><strong>Професія:</strong> {{ player.profession }}</li>
-                        <li><strong>Здоров'я:</strong> {{ player.health }}</li>
-                        <li><strong>Стать:</strong> {{ player.gender }}</li>
-                        <li><strong>Хобі:</strong> {{ player.hobby }}</li>
-                        <li><strong>Інвентар:</strong> {{ player.inventory }}</li>
-                        <li><strong>Риса:</strong> {{ player.human_trait }}</li>
-                    </ul>
+            <!-- Основний ігровий інтерфейс -->
+            <div id="game-view-container">
+
+                <!-- Картка поточного гравця -->
+                <div id="my-card-view">
+                    <div class="bg-gray-800 rounded-lg p-6 text-center shadow-2xl">
+                        <h1 class="text-3xl font-bold text-amber-400">ВАШ ПРОФІЛЬ: {{ player.username }}</h1>
+                        <div class="mt-6 p-4 bg-gray-700 rounded-lg max-w-lg mx-auto text-left">
+                            <ul class="space-y-3 text-base">
+                                <li class="flex justify-between items-center">
+                                    <span><strong>Професія:</strong> {{ player.profession }}</span>
+                                    <button class="reveal-btn px-3 py-1 text-xs rounded {{ 'bg-green-600' if player.is_profession_revealed else 'bg-blue-600 hover:bg-blue-500' }}" data-attribute="profession">{{ 'Показано' if player.is_profession_revealed else 'Показати' }}</button>
+                                </li>
+                                <li class="flex justify-between items-center">
+                                    <span><strong>Здоров'я:</strong> {{ player.health }}</span>
+                                    <button class="reveal-btn px-3 py-1 text-xs rounded {{ 'bg-green-600' if player.is_health_revealed else 'bg-blue-600 hover:bg-blue-500' }}" data-attribute="health">{{ 'Показано' if player.is_health_revealed else 'Показати' }}</button>
+                                </li>
+                                <li class="flex justify-between items-center">
+                                    <span><strong>Стать:</strong> {{ player.gender }}</span>
+                                    <button class="reveal-btn px-3 py-1 text-xs rounded {{ 'bg-green-600' if player.is_gender_revealed else 'bg-blue-600 hover:bg-blue-500' }}" data-attribute="gender">{{ 'Показано' if player.is_gender_revealed else 'Показати' }}</button>
+                                </li>
+                                <li class="flex justify-between items-center">
+                                    <span><strong>Хобі:</strong> {{ player.hobby }}</span>
+                                    <button class="reveal-btn px-3 py-1 text-xs rounded {{ 'bg-green-600' if player.is_hobby_revealed else 'bg-blue-600 hover:bg-blue-500' }}" data-attribute="hobby">{{ 'Показано' if player.is_hobby_revealed else 'Показати' }}</button>
+                                </li>
+                                <li class="flex justify-between items-center">
+                                    <span><strong>Інвентар:</strong> {{ player.inventory }}</span>
+                                    <button class="reveal-btn px-3 py-1 text-xs rounded {{ 'bg-green-600' if player.is_inventory_revealed else 'bg-blue-600 hover:bg-blue-500' }}" data-attribute="inventory">{{ 'Показано' if player.is_inventory_revealed else 'Показати' }}</button>
+                                </li>
+                                <li class="flex justify-between items-center">
+                                    <span><strong>Риса:</strong> {{ player.human_trait }}</span>
+                                    <button class="reveal-btn px-3 py-1 text-xs rounded {{ 'bg-green-600' if player.is_trait_revealed else 'bg-blue-600 hover:bg-blue-500' }}" data-attribute="trait">{{ 'Показано' if player.is_trait_revealed else 'Показати' }}</button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
-                <p class="mt-6 text-gray-500 animate-pulse">Очікування на голосування...</p>
+
+                <!-- Шаблон картки іншого гравця -->
+                <div id="other-card-view" class="hidden">
+                     <div class="bg-gray-800 rounded-lg p-6 text-center shadow-2xl">
+                        <h1 class="text-3xl font-bold text-cyan-400">КАРТКА ГРАВЦЯ: <span id="other-player-name"></span></h1>
+                        <div class="mt-6 p-4 bg-gray-700 rounded-lg max-w-lg mx-auto text-left">
+                            <ul class="space-y-2 text-base">
+                                <li><strong>Професія:</strong> <span id="other-player-profession"></span></li>
+                                <li><strong>Здоров'я:</strong> <span id="other-player-health"></span></li>
+                                <li><strong>Стать:</strong> <span id="other-player-gender"></span></li>
+                                <li><strong>Хобі:</strong> <span id="other-player-hobby"></span></li>
+                                <li><strong>Інвентар:</strong> <span id="other-player-inventory"></span></li>
+                                <li><strong>Риса:</strong> <span id="other-player-trait"></span></li>
+                            </ul>
+                        </div>
+                     </div>
+                </div>
+
+                <!-- Панель керування переглядом -->
+                <div class="mt-6 p-4 bg-gray-800 rounded-lg text-center">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-300">Керування переглядом</h3>
+                    <div class="flex flex-wrap justify-center gap-3" id="player-select-container">
+                        <button id="show-my-card-btn" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 rounded font-bold">Моя картка</button>
+                        {% for p in other_players if p.username != player.username %}
+                            <button class="player-btn px-4 py-2 bg-cyan-800 hover:bg-cyan-700 rounded"
+                                    data-username="{{ p.username }}"
+                                    data-profession="{{ p.profession }}"
+                                    data-is-profession-revealed="{{ p.is_profession_revealed }}"
+                                    data-health="{{ p.health }}"
+                                    data-is-health-revealed="{{ p.is_health_revealed }}"
+                                    data-gender="{{ p.gender }}"
+                                    data-is-gender-revealed="{{ p.is_gender_revealed }}"
+                                    data-hobby="{{ p.hobby }}"
+                                    data-is-hobby-revealed="{{ p.is_hobby_revealed }}"
+                                    data-inventory="{{ p.inventory }}"
+                                    data-is-inventory-revealed="{{ p.is_inventory_revealed }}"
+                                    data-trait="{{ p.human_trait }}"
+                                    data-is-trait-revealed="{{ p.is_trait_revealed }}">
+                                {{ p.username }}
+                            </button>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
         {% endif %}
     </div>
 
     <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const myCardView = document.getElementById('my-card-view');
+            const otherCardView = document.getElementById('other-card-view');
+            const playerSelectContainer = document.getElementById('player-select-container');
+
+            myCardView.addEventListener('click', async (event) => {
+                const target = event.target;
+                if (!target.classList.contains('reveal-btn')) return;
+                const attribute = target.dataset.attribute;
+                target.disabled = true;
+                try {
+                    const response = await fetch('/api/toggle_reveal', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ attribute: attribute })
+                    });
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        target.classList.toggle('bg-blue-600');
+                        target.classList.toggle('hover:bg-blue-500');
+                        target.classList.toggle('bg-green-600');
+                        target.textContent = target.textContent === 'Показати' ? 'Показано' : 'Показати';
+                    }
+                } catch (error) {
+                    console.error('Failed to toggle reveal state:', error);
+                } finally {
+                    target.disabled = false;
+                }
+            });
+
+            function setFieldVisibility(element, value, isRevealed) {
+                if (isRevealed) {
+                    element.textContent = value;
+                    element.classList.remove('blurred-text');
+                } else {
+                    element.textContent = 'Прихована інформація';
+                    element.classList.add('blurred-text');
+                }
+            }
+
+            playerSelectContainer.addEventListener('click', (event) => {
+                const target = event.target;
+                if (target.id === 'show-my-card-btn') {
+                    switchView('my');
+                    return;
+                }
+                if (target.classList.contains('player-btn')) {
+                    const dataset = target.dataset;
+                    document.getElementById('other-player-name').textContent = dataset.username;
+                    setFieldVisibility(document.getElementById('other-player-profession'), dataset.profession, dataset.isProfessionRevealed === '1');
+                    setFieldVisibility(document.getElementById('other-player-health'), dataset.health, dataset.isHealthRevealed === '1');
+                    setFieldVisibility(document.getElementById('other-player-gender'), dataset.gender, dataset.isGenderRevealed === '1');
+                    setFieldVisibility(document.getElementById('other-player-hobby'), dataset.hobby, dataset.isHobbyRevealed === '1');
+                    setFieldVisibility(document.getElementById('other-player-inventory'), dataset.inventory, dataset.isInventoryRevealed === '1');
+                    setFieldVisibility(document.getElementById('other-player-trait'), dataset.trait, dataset.isTraitRevealed === '1');
+                    switchView('other');
+                }
+            });
+
+            function switchView(viewToShow) {
+                myCardView.classList.toggle('hidden', viewToShow !== 'my');
+                otherCardView.classList.toggle('hidden', viewToShow !== 'other');
+            }
+        });
+
         const sessionCode = "{{ session_details.session_code }}";
         const body = document.querySelector('body');
         const isVotingCurrentlyActive = body.dataset.votingActive === 'true';
@@ -68,15 +201,33 @@
                 if (!response.ok) throw new Error('Network error');
                 const data = await response.json();
 
-                if (data.is_voting_active !== isVotingCurrentlyActive) {
+                if (data.is_voting_active !== isVotingCurrentlyActive || data.session_status === 'finished') {
                     clearInterval(interval);
                     window.location.reload();
+                    return;
                 }
+
+                // Оновлюємо data-атрибути кнопок перегляду
+                const playerButtons = document.querySelectorAll('.player-btn');
+                playerButtons.forEach(button => {
+                    const username = button.dataset.username;
+                    const playerData = data.all_players_data.find(p => p.username === username);
+                    if (playerData) {
+                        button.dataset.isProfessionRevealed = playerData.is_profession_revealed;
+                        button.dataset.isHealthRevealed = playerData.is_health_revealed;
+                        button.dataset.isGenderRevealed = playerData.is_gender_revealed;
+                        button.dataset.isHobbyRevealed = playerData.is_hobby_revealed;
+                        button.dataset.isInventoryRevealed = playerData.is_inventory_revealed;
+                        button.dataset.isTraitRevealed = playerData.is_trait_revealed;
+                    }
+                });
+
+
             } catch (error) {
-                console.error('Error checking vote status:', error);
+                console.error('Error checking game state:', error);
                 clearInterval(interval);
             }
-        }, 500);
+        }, 5000);
     </script>
 </body>
 </html>
