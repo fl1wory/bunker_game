@@ -26,8 +26,6 @@ def close_db(exception=None):
 def init_db(app):
     with app.app_context():
         db = get_db()
-        # schema.sql тепер не потрібен, бо ми створюємо всі таблиці тут
-        # Створення таблиці адміністраторів
         db.execute("""
             CREATE TABLE IF NOT EXISTS admins (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,7 +33,6 @@ def init_db(app):
                 password_hash TEXT NOT NULL
             );
         """)
-        # Створення таблиці ігрових сесій
         db.execute("""
             CREATE TABLE IF NOT EXISTS game_sessions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,7 +44,6 @@ def init_db(app):
                 is_voting_active BOOLEAN NOT NULL DEFAULT 0
             );
         """)
-        # Створення таблиці голосів
         db.execute("""
             CREATE TABLE IF NOT EXISTS votes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -84,13 +80,8 @@ def create_game_session(session_code, admin_login):
             id INTEGER PRIMARY KEY, 
             username TEXT NOT NULL UNIQUE, 
             status TEXT NOT NULL DEFAULT "in_game", 
-            gender TEXT, 
-            profession TEXT, 
-            health TEXT, 
-            hobby TEXT, 
-            inventory TEXT, 
-            human_trait TEXT, 
-            secret TEXT,
+            gender TEXT, profession TEXT, health TEXT, 
+            hobby TEXT, inventory TEXT, human_trait TEXT, secret TEXT,
             is_profession_revealed BOOLEAN NOT NULL DEFAULT 0,
             is_health_revealed BOOLEAN NOT NULL DEFAULT 0,
             is_gender_revealed BOOLEAN NOT NULL DEFAULT 0,
@@ -187,8 +178,7 @@ def toggle_attribute_visibility(session_code, username, attribute_name):
     if attribute_name not in valid_attributes: return False
     column_name = f'is_{attribute_name}_revealed'
     db = get_db()
-    query = f'UPDATE "{session_code}" SET {column_name} = NOT {column_name} WHERE username = ?'
-    db.execute(query, (username,))
+    db.execute(f'UPDATE "{session_code}" SET {column_name} = NOT {column_name} WHERE username = ?', (username,))
     db.commit()
     return True
 
@@ -232,3 +222,11 @@ def get_player_vote(session_code, voter_username):
     cursor = get_db().cursor()
     cursor.execute("SELECT id FROM votes WHERE session_code = ? AND voter_username = ?", (session_code, voter_username))
     return cursor.fetchone() is not None
+
+
+def get_all_votes(session_code):
+    """Нова функція для отримання списку всіх голосів у сесії."""
+    cursor = get_db().cursor()
+    cursor.execute("SELECT voter_username, voted_for_username FROM votes WHERE session_code = ? ORDER BY id",
+                   (session_code,))
+    return cursor.fetchall()
