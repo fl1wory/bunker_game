@@ -8,27 +8,19 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         .carousel-container {
-            display: flex;
-            overflow-x: auto;
+            display: flex; overflow-x: auto;
             scroll-snap-type: x mandatory;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
         }
         .carousel-container::-webkit-scrollbar { display: none; }
         .carousel-item {
-            flex: 0 0 100%;
-            width: 100%;
+            flex: 0 0 100%; width: 100%;
             scroll-snap-align: center;
-            transform: scale(0.9);
-            opacity: 0.6;
-            filter: blur(2px);
+            transform: scale(0.9); opacity: 0.6; filter: blur(2px);
             transition: transform 0.4s, opacity 0.4s, filter 0.4s;
         }
-        .carousel-item.is-active {
-            transform: scale(1);
-            opacity: 1;
-            filter: none;
-        }
+        .carousel-item.is-active { transform: scale(1); opacity: 1; filter: none; }
         .blurred-text { filter: blur(4px); user-select: none; }
         .control-btn.is-active-btn {
             background-color: #d97706; /* amber-600 */
@@ -36,9 +28,8 @@
         }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-200 min-h-screen flex flex-col items-center justify-center p-4">
+<body class="bg-gray-900 text-gray-200 min-h-screen flex flex-col items-center justify-center p-4 overflow-hidden" data-voting-active="{{ session_details.is_voting_active|string|lower }}">
     <div class="w-full max-w-lg">
-
         {% if session_details.is_voting_active %}
             <div class="bg-red-900/50 border-2 border-red-500 rounded-lg p-6 text-center shadow-2xl">
                 <h1 class="text-3xl font-bold text-red-400 mb-4">ГОЛОСУВАННЯ ЗА ВИГНАННЯ</h1>
@@ -46,7 +37,7 @@
                     <p class="text-xl text-gray-300">Ваш голос зараховано. Очікуйте на результати.</p>
                 {% else %}
                     <p class="mb-4 text-gray-400">Ви голосуєте від імені: <strong class="text-amber-300">{{ player.username }}</strong></p>
-                    <p class="text-lg text-gray-400 mb-6">Оберіть одного кандидата, щоб вигнати з бункера.</p>
+                    <p class="text-lg text-gray-400 mb-6">Оберіть одного кандидата або пропустіть хід.</p>
                     <form action="{{ url_for('player_vote') }}" method="POST">
                         <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
                             {% for p in all_players if p.username != player.username and p.status == 'in_game' %}
@@ -56,7 +47,10 @@
                             </div>
                             {% endfor %}
                         </div>
-                        <button type="submit" class="bg-red-600 hover:bg-red-500 px-8 py-3 rounded-lg font-bold">ВІДДАТИ ГОЛОС</button>
+                        <div class="flex space-x-4 mt-6">
+                            <button type="submit" class="w-full bg-red-700 hover:bg-red-600 px-8 py-3 rounded-lg font-bold">ВІДДАТИ ГОЛОС</button>
+                            <button type="submit" name="candidate" value="__SKIP__" formnovalidate class="w-full bg-gray-600 hover:bg-gray-500 px-8 py-3 rounded-lg font-bold">ПРОПУСТИТИ ХІД</button>
+                        </div>
                     </form>
                 {% endif %}
             </div>
@@ -69,23 +63,23 @@
                         <div class="bg-gray-800 rounded-lg p-6 text-center shadow-2xl">
                             {% if p.username == player.username %}
                                 <h1 class="text-2xl font-bold text-amber-400">ВАШ ПРОФІЛЬ: {{ p.username }}</h1>
-                                <ul class="mt-4 space-y-2 text-base text-left">
-                                    <li><strong>Професія:</strong> <span>{{ p.profession }}</span></li>
-                                    <li><strong>Здоров'я:</strong> <span>{{ p.health }}</span></li>
-                                    <li><strong>Стать:</strong> <span>{{ p.gender }}</span></li>
-                                    <li><strong>Хобі:</strong> <span>{{ p.hobby }}</span></li>
-                                    <li><strong>Інвентар:</strong> <span>{{ p.inventory }}</span></li>
-                                    <li><strong>Риса:</strong> <span>{{ p.human_trait }}</span></li>
+                                <ul class="mt-4 space-y-3 text-base text-left">
+                                    <li class="flex justify-between items-center"><span><strong>Професія:</strong> {{ p.profession }}</span><button class="reveal-btn px-3 py-1 text-xs rounded {{ 'bg-green-600' if p.is_profession_revealed else 'bg-blue-600 hover:bg-blue-500' }}" data-attribute="profession">{{ 'Показано' if p.is_profession_revealed else 'Показати' }}</button></li>
+                                    <li class="flex justify-between items-center"><span><strong>Здоров'я:</strong> {{ p.health }}</span><button class="reveal-btn px-3 py-1 text-xs rounded {{ 'bg-green-600' if p.is_health_revealed else 'bg-blue-600 hover:bg-blue-500' }}" data-attribute="health">{{ 'Показано' if p.is_health_revealed else 'Показати' }}</button></li>
+                                    <li class="flex justify-between items-center"><span><strong>Стать:</strong> {{ p.gender }}</span><button class="reveal-btn px-3 py-1 text-xs rounded {{ 'bg-green-600' if p.is_gender_revealed else 'bg-blue-600 hover:bg-blue-500' }}" data-attribute="gender">{{ 'Показано' if p.is_gender_revealed else 'Показати' }}</button></li>
+                                    <li class="flex justify-between items-center"><span><strong>Хобі:</strong> {{ p.hobby }}</span><button class="reveal-btn px-3 py-1 text-xs rounded {{ 'bg-green-600' if p.is_hobby_revealed else 'bg-blue-600 hover:bg-blue-500' }}" data-attribute="hobby">{{ 'Показано' if p.is_hobby_revealed else 'Показати' }}</button></li>
+                                    <li class="flex justify-between items-center"><span><strong>Інвентар:</strong> {{ p.inventory }}</span><button class="reveal-btn px-3 py-1 text-xs rounded {{ 'bg-green-600' if p.is_inventory_revealed else 'bg-blue-600 hover:bg-blue-500' }}" data-attribute="inventory">{{ 'Показано' if p.is_inventory_revealed else 'Показати' }}</button></li>
+                                    <li class="flex justify-between items-center"><span><strong>Риса:</strong> {{ p.human_trait }}</span><button class="reveal-btn px-3 py-1 text-xs rounded {{ 'bg-green-600' if p.is_trait_revealed else 'bg-blue-600 hover:bg-blue-500' }}" data-attribute="trait">{{ 'Показано' if p.is_trait_revealed else 'Показати' }}</button></li>
                                 </ul>
                             {% else %}
                                 <h1 class="text-2xl font-bold text-cyan-400">ГРАВЕЦЬ: {{ p.username }}</h1>
                                 <ul class="mt-4 space-y-2 text-base text-left">
-                                    <li><strong>Професія:</strong> <span class="{{ '' if p.is_profession_revealed else 'blurred-text' }}">{{ p.profession if p.is_profession_revealed else 'Приховано' }}</span></li>
-                                    <li><strong>Здоров'я:</strong> <span class="{{ '' if p.is_health_revealed else 'blurred-text' }}">{{ p.health if p.is_health_revealed else 'Приховано' }}</span></li>
-                                    <li><strong>Стать:</strong> <span class="{{ '' if p.is_gender_revealed else 'blurred-text' }}">{{ p.gender if p.is_gender_revealed else 'Приховано' }}</span></li>
-                                    <li><strong>Хобі:</strong> <span class="{{ '' if p.is_hobby_revealed else 'blurred-text' }}">{{ p.hobby if p.is_hobby_revealed else 'Приховано' }}</span></li>
-                                    <li><strong>Інвентар:</strong> <span class="{{ '' if p.is_inventory_revealed else 'blurred-text' }}">{{ p.inventory if p.is_inventory_revealed else 'Приховано' }}</span></li>
-                                    <li><strong>Риса:</strong> <span class="{{ '' if p.is_trait_revealed else 'blurred-text' }}">{{ p.human_trait if p.is_trait_revealed else 'Приховано' }}</span></li>
+                                    <li><strong>Професія:</strong> <span class="attr-field" data-attr="profession">{{ 'Приховано' }}</span></li>
+                                    <li><strong>Здоров'я:</strong> <span class="attr-field" data-attr="health">{{ 'Приховано' }}</span></li>
+                                    <li><strong>Стать:</strong> <span class="attr-field" data-attr="gender">{{ 'Приховано' }}</span></li>
+                                    <li><strong>Хобі:</strong> <span class="attr-field" data-attr="hobby">{{ 'Приховано' }}</span></li>
+                                    <li><strong>Інвентар:</strong> <span class="attr-field" data-attr="inventory">{{ 'Приховано' }}</span></li>
+                                    <li><strong>Риса:</strong> <span class="attr-field" data-attr="trait">{{ 'Приховано' }}</span></li>
                                 </ul>
                             {% endif %}
                         </div>
@@ -93,7 +87,6 @@
                     {% endif %}
                     {% endfor %}
                 </div>
-
                 <div class="p-4 bg-gray-800 rounded-lg text-center">
                     <div class="flex flex-wrap justify-center gap-3" id="player-select-container">
                         {% for p in all_players if p.status == 'in_game' %}
@@ -109,47 +102,111 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
+        const gameView = document.getElementById('game-view-container');
+        if (!gameView) return; // Виходимо, якщо ми не в ігровому режимі
+
         const carousel = document.getElementById('card-carousel');
         const btnContainer = document.getElementById('player-select-container');
-        if (!carousel || !btnContainer) return;
-
-        const cards = carousel.querySelectorAll('.carousel-item');
-        const buttons = btnContainer.querySelectorAll('.control-btn');
+        let allPlayersData = []; // Сховище для даних про гравців
 
         const updateActiveStates = (activeCard) => {
+            if (!activeCard) return;
             const activeCardId = activeCard.id;
-            cards.forEach(card => {
-                card.classList.toggle('is-active', card.id === activeCardId);
-            });
-            buttons.forEach(button => {
-                button.classList.toggle('is-active-btn', button.dataset.targetCard === activeCardId);
-            });
+            carousel.querySelectorAll('.carousel-item').forEach(card => card.classList.toggle('is-active', card.id === activeCardId));
+            btnContainer.querySelectorAll('.control-btn').forEach(button => button.classList.toggle('is-active-btn', button.dataset.targetCard === activeCardId));
         };
 
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    updateActiveStates(entry.target);
-                }
+                if (entry.isIntersecting) updateActiveStates(entry.target);
             });
         }, { root: carousel, threshold: 0.6 });
 
-        cards.forEach(card => observer.observe(card));
+        carousel.querySelectorAll('.carousel-item').forEach(card => observer.observe(card));
 
         btnContainer.addEventListener('click', (e) => {
             if (e.target.classList.contains('control-btn')) {
-                const targetCardId = e.target.dataset.targetCard;
-                const targetCard = document.getElementById(targetCardId);
-                if (targetCard) {
-                    targetCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-                }
+                const targetCard = document.getElementById(e.target.dataset.targetCard);
+                if (targetCard) targetCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
             }
+        });
+
+        const myCardView = document.getElementById('card-{{ player.username }}');
+        if (myCardView) myCardView.addEventListener('click', async (event) => {
+            const target = event.target;
+            if (!target.classList.contains('reveal-btn')) return;
+            target.disabled = true;
+            try {
+                const response = await fetch('/api/toggle_reveal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ attribute: target.dataset.attribute })
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    target.classList.toggle('bg-blue-600', !target.classList.contains('bg-green-600'));
+                    target.classList.toggle('bg-green-600', !target.textContent.includes('Показано'));
+                    target.textContent = target.textContent.includes('Показати') ? 'Показано' : 'Показати';
+                }
+            } catch(e) { console.error(e) } finally { target.disabled = false; }
         });
 
         const myCard = document.getElementById('card-{{ player.username }}');
         if (myCard) {
              myCard.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
              setTimeout(() => updateActiveStates(myCard), 100);
+        }
+
+        // --- Polling for game state ---
+        const sessionCode = "{{ session_details.session_code }}";
+        const body = document.querySelector('body');
+
+        const pollGameState = async () => {
+            try {
+                const response = await fetch(`/api/game_state/${sessionCode}`);
+                if (!response.ok) throw new Error('Network error');
+                const data = await response.json();
+
+                // 1. Check for major state changes (voting, game end) -> reload
+                const isVotingNowActive = data.is_voting_active;
+                const wasVotingActive = body.dataset.votingActive === 'true';
+                if (isVotingNowActive !== wasVotingActive || data.session_status === 'finished') {
+                    window.location.reload();
+                    return; // Stop polling after reload decision
+                }
+
+                // 2. Update player data for viewing other cards
+                allPlayersData = data.all_players_data;
+                updateOtherPlayerCards();
+            } catch(e) { console.error('Polling error:', e); }
+        };
+
+        const updateOtherPlayerCards = () => {
+            allPlayersData.forEach(playerData => {
+                if(playerData.username === '{{ player.username }}') return;
+
+                const cardElement = document.getElementById(`card-${playerData.username}`);
+                if(!cardElement) return;
+
+                const setField = (attr, value, isRevealed) => {
+                    const field = cardElement.querySelector(`.attr-field[data-attr="${attr}"]`);
+                    if(field) {
+                        field.textContent = isRevealed ? value : 'Приховано';
+                        field.classList.toggle('blurred-text', !isRevealed);
+                    }
+                }
+                setField('profession', playerData.profession, playerData.is_profession_revealed);
+                setField('health', playerData.health, playerData.is_health_revealed);
+                setField('gender', playerData.gender, playerData.is_gender_revealed);
+                setField('hobby', playerData.hobby, playerData.is_hobby_revealed);
+                setField('inventory', playerData.inventory, playerData.is_inventory_revealed);
+                setField('trait', playerData.human_trait, playerData.is_trait_revealed);
+            });
+        };
+
+        // Start polling if not in voting mode
+        if (body.dataset.votingActive === 'false') {
+            setInterval(pollGameState, 5000); // Poll every 5 seconds
         }
     });
     </script>

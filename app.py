@@ -40,14 +40,13 @@ def game_room():
     if 'username' not in session or 'session_code' not in session: return redirect(url_for('index'))
     session_details = database.get_session_details(session['session_code'])
     if not session_details or session_details['status'] == 'finished':
-        session.clear()
-        return render_template('error.html', error_message="Сесію було завершено.")
+        session.clear(); return render_template('error.html', error_message="Сесію було завершено.")
     player = database.get_player(session['session_code'], session['username'])
     if not player or player['status'] != 'in_game':
-        session.clear()
-        return render_template('error.html', error_message="Вас було виключено з гри.")
+        session.clear(); return render_template('error.html', error_message="Вас було виключено з гри.")
     if session_details['status'] == 'lobby':
-        return render_template('lobby.html', player=player, session_code=session['session_code'])
+        players_in_lobby = database.get_players_in_session(session['session_code'])
+        return render_template('lobby.html', player=player, session_code=session['session_code'], players_in_lobby=players_in_lobby)
     if session_details['status'] == 'running':
         active_players_count = database.count_active_players(session['session_code'])
         if active_players_count <= session_details['win_condition_limit']:
@@ -69,15 +68,35 @@ def player_vote():
 @app.route('/game_over')
 def game_over():
     if 'session_code' not in session: return redirect(url_for('index'))
-    session_code = session['session_code']
-    session_details = database.get_session_details(session_code)
-    winners = [p for p in database.get_players_in_session(session_code) if p['status'] == 'in_game']
-    return render_template('game_over.html', winners=winners, session_details=session_details)
+    winners = [p for p in database.get_players_in_session(session['session_code']) if p['status'] == 'in_game']
+    return render_template('game_over.html', winners=winners)
 
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('index'))
+
+# --- API Endpoints ---
+@app.route('/api/game_state/<session_code>')
+def api_game_state(session_code):
+    if 'username' not in session: abort(401)
+    session_details = database.get_session_details(session_code)
+    if not session_details: abort(404)
+    all_players_data = [dict(p) for p in database.get_players_in_session(session_code)]
+    return jsonify({
+        'session_status': session_details['status'],
+        'is_voting_active': session_details['is_voting_active'],
+        'all_players_data': all_players_data
+    })
+
+@app.route('/api/toggle_reveal', methods=['POST'])
+def toggle_reveal():
+    if 'username' not in session: abort(401)
+    data = request.get_json()
+    attribute = data.get('attribute')
+    if not attribute: return jsonify({'status': 'error', 'message': 'Attribute not specified'}), 400
+    success = database.toggle_attribute_visibility(session['session_code'], session['username'], attribute)
+    return jsonify({'status': 'success'} if success else {'status': 'error', 'message': 'Invalid attribute'})
 
 # --- Admin Routes ---
 @app.route('/admin', methods=['GET', 'POST'])
@@ -116,9 +135,7 @@ def create_session():
         try:
             database.create_game_session(session_code, session['admin_login'])
             break
-        except sqlite3.IntegrityError:
-            print(f"Code collision for {session_code}. Retrying...")
-            continue
+        except sqlite3.IntegrityError: continue
     return jsonify({'session_code': session_code})
 
 @app.route('/admin/start_game/<session_code>', methods=['POST'])

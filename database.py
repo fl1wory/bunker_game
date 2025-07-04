@@ -78,16 +78,11 @@ def create_game_session(session_code, admin_login):
     db.execute(f'''
         CREATE TABLE "{session_code}" (
             id INTEGER PRIMARY KEY, 
-            username TEXT NOT NULL UNIQUE, 
-            status TEXT NOT NULL DEFAULT "in_game", 
-            gender TEXT, profession TEXT, health TEXT, 
-            hobby TEXT, inventory TEXT, human_trait TEXT, secret TEXT,
-            is_profession_revealed BOOLEAN NOT NULL DEFAULT 0,
-            is_health_revealed BOOLEAN NOT NULL DEFAULT 0,
-            is_gender_revealed BOOLEAN NOT NULL DEFAULT 0,
-            is_hobby_revealed BOOLEAN NOT NULL DEFAULT 0,
-            is_inventory_revealed BOOLEAN NOT NULL DEFAULT 0,
-            is_trait_revealed BOOLEAN NOT NULL DEFAULT 0
+            username TEXT NOT NULL UNIQUE, status TEXT NOT NULL DEFAULT "in_game", 
+            gender TEXT, profession TEXT, health TEXT, hobby TEXT, inventory TEXT, human_trait TEXT, secret TEXT,
+            is_profession_revealed BOOLEAN NOT NULL DEFAULT 0, is_health_revealed BOOLEAN NOT NULL DEFAULT 0,
+            is_gender_revealed BOOLEAN NOT NULL DEFAULT 0, is_hobby_revealed BOOLEAN NOT NULL DEFAULT 0,
+            is_inventory_revealed BOOLEAN NOT NULL DEFAULT 0, is_trait_revealed BOOLEAN NOT NULL DEFAULT 0
         )
     ''')
     db.commit()
@@ -212,7 +207,7 @@ def cast_vote(session_code, voter_username, candidate):
 def tally_votes(session_code):
     cursor = get_db().cursor()
     cursor.execute(
-        "SELECT voted_for_username, COUNT(id) as vote_count FROM votes WHERE session_code = ? GROUP BY voted_for_username ORDER BY vote_count DESC LIMIT 1",
+        "SELECT voted_for_username, COUNT(id) as vote_count FROM votes WHERE session_code = ? AND voted_for_username != '__SKIP__' GROUP BY voted_for_username ORDER BY vote_count DESC LIMIT 1",
         (session_code,))
     result = cursor.fetchone()
     return result['voted_for_username'] if result else None
@@ -225,7 +220,6 @@ def get_player_vote(session_code, voter_username):
 
 
 def get_all_votes(session_code):
-    """Нова функція для отримання списку всіх голосів у сесії."""
     cursor = get_db().cursor()
     cursor.execute("SELECT voter_username, voted_for_username FROM votes WHERE session_code = ? ORDER BY id",
                    (session_code,))
