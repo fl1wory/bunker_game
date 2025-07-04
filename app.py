@@ -1,7 +1,6 @@
 # /bunker_game/app.py
 
-import random, string
-import sqlite3
+import random, string, sqlite3
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, abort
 from werkzeug.security import check_password_hash
 import database, game_data
@@ -74,6 +73,22 @@ def game_over():
     session_details = database.get_session_details(session_code)
     winners = [p for p in database.get_players_in_session(session_code) if p['status'] == 'in_game']
     return render_template('game_over.html', winners=winners, session_details=session_details)
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('index'))
+
+# --- Admin Routes ---
+@app.route('/admin', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        admin = database.get_admin_by_login(request.form['login'])
+        if admin and check_password_hash(admin['password_hash'], request.form['password']):
+            session['admin_login'] = admin['login']
+            return redirect(url_for('admin_dashboard'))
+        return render_template('admin_login.html', error="Невірний логін або пароль")
+    return render_template('admin_login.html')
 
 @app.route('/admin/dashboard')
 def admin_dashboard():
@@ -153,8 +168,3 @@ def manage_vote(session_code):
         if player_to_kick: database.set_player_status(session_code, player_to_kick, 'voted_out')
         database.clear_votes(session_code)
     return redirect(url_for('admin_session_details', session_code=session_code))
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('index'))
