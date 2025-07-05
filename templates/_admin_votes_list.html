@@ -1,0 +1,13 @@
+{% for vote in votes %}
+<div>
+    <span class="text-green-400">{{ vote.voter_username }}</span>
+    <i class="fas fa-arrow-right text-gray-500 mx-2"></i>
+    {% if vote.voted_for_username == '__SKIP__' %}
+        <span class="italic text-gray-400">пропустив хід</span>
+    {% else %}
+        <span class="text-red-400">{{ vote.voted_for_username }}</span>
+    {% endif %}
+</div>
+{% else %}
+<p class="text-gray-500 col-span-full">Ще ніхто не проголосував.</p>
+{% endfor %}

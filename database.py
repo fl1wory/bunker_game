@@ -26,32 +26,13 @@ def close_db(exception=None):
 def init_db(app):
     with app.app_context():
         db = get_db()
-        db.execute("""
-            CREATE TABLE IF NOT EXISTS admins (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                login TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL
-            );
-        """)
-        db.execute("""
-            CREATE TABLE IF NOT EXISTS game_sessions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                session_code TEXT UNIQUE NOT NULL,
-                admin_login TEXT NOT NULL,
-                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                status TEXT NOT NULL DEFAULT 'lobby',
-                win_condition_limit INTEGER NOT NULL DEFAULT 2,
-                is_voting_active BOOLEAN NOT NULL DEFAULT 0
-            );
-        """)
-        db.execute("""
-            CREATE TABLE IF NOT EXISTS votes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                session_code TEXT NOT NULL,
-                voter_username TEXT NOT NULL,
-                voted_for_username TEXT NOT NULL
-            );
-        """)
+        # Create tables if they don't exist
+        db.execute(
+            "CREATE TABLE IF NOT EXISTS admins (id INTEGER PRIMARY KEY, login TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL)")
+        db.execute(
+            "CREATE TABLE IF NOT EXISTS game_sessions (id INTEGER PRIMARY KEY, session_code TEXT UNIQUE NOT NULL, admin_login TEXT NOT NULL, created_at TIMESTAMP NOT NULL, status TEXT NOT NULL DEFAULT 'lobby', win_condition_limit INTEGER NOT NULL DEFAULT 2, is_voting_active BOOLEAN NOT NULL DEFAULT 0)")
+        db.execute(
+            "CREATE TABLE IF NOT EXISTS votes (id INTEGER PRIMARY KEY, session_code TEXT NOT NULL, voter_username TEXT NOT NULL, voted_for_username TEXT NOT NULL)")
 
         cursor = db.cursor()
         default_admins = [('admin', 'password'), ('fl1wory', 'F#She37bd8m1903')]
@@ -70,15 +51,13 @@ def check_table_exists(table_name):
     return cursor.fetchone() is not None
 
 
-# --- Session Management ---
 def create_game_session(session_code, admin_login):
     db = get_db()
-    db.execute("INSERT INTO game_sessions (session_code, admin_login, created_at) VALUES (?, ?, ?)",
+    db.execute("INSERT INTO game_sessions (session_code, admin_login, created_at, status) VALUES (?, ?, ?, 'lobby')",
                (session_code, admin_login, datetime.now()))
     db.execute(f'''
         CREATE TABLE "{session_code}" (
-            id INTEGER PRIMARY KEY, 
-            username TEXT NOT NULL UNIQUE, status TEXT NOT NULL DEFAULT "in_game", 
+            id INTEGER PRIMARY KEY, username TEXT NOT NULL UNIQUE, status TEXT NOT NULL DEFAULT "in_game", 
             gender TEXT, profession TEXT, health TEXT, hobby TEXT, inventory TEXT, human_trait TEXT, secret TEXT,
             is_profession_revealed BOOLEAN NOT NULL DEFAULT 0, is_health_revealed BOOLEAN NOT NULL DEFAULT 0,
             is_gender_revealed BOOLEAN NOT NULL DEFAULT 0, is_hobby_revealed BOOLEAN NOT NULL DEFAULT 0,
@@ -127,7 +106,6 @@ def update_win_condition(session_code, limit):
     db.commit()
 
 
-# --- Player Management ---
 def add_player(session_code, username, profile):
     db = get_db()
     try:
@@ -178,7 +156,6 @@ def toggle_attribute_visibility(session_code, username, attribute_name):
     return True
 
 
-# --- Admin and Voting Management ---
 def get_admin_by_login(login):
     cursor = get_db().cursor()
     cursor.execute("SELECT * FROM admins WHERE login = ?", (login,))
@@ -206,6 +183,7 @@ def cast_vote(session_code, voter_username, candidate):
 
 def tally_votes(session_code):
     cursor = get_db().cursor()
+    # ОНОВЛЕНО: Додано умову, щоб не рахувати пропуски ходу
     cursor.execute(
         "SELECT voted_for_username, COUNT(id) as vote_count FROM votes WHERE session_code = ? AND voted_for_username != '__SKIP__' GROUP BY voted_for_username ORDER BY vote_count DESC LIMIT 1",
         (session_code,))
